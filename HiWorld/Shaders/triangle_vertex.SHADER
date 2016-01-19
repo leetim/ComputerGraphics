@@ -9,5 +9,5 @@ void main(){
 	v.y /= v.w;
 	v.z /= v.w;
 	v.w = 1.0;
-	gl_Position = v; // ec4(position, 1.0); // v;
+	gl_Position = v;
 }

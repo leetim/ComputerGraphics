@@ -91,25 +91,16 @@ GLuint LoadShader(char* fileName, GLenum shaderType) {
 void display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	Mat4 m = perspective(90, 1.0f, 0.1f, 1001.0f);
-	float t[16];
-	float* tt = m.getArray();
-	for (int i = 0; i < 16; i++) {
-		t[i] = tt[i];
-	}
+	glm::mat4 m = glm::perspective(45.0f, 1.0f, 0.1f, 1000.0f);
 	float z[] = {
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, -2,
 		0, 0, -1, 0
 	};
-	Vec4 a = m(Vec4(1.0f, 1.0f, 500.0f, 1.0f));
-	for (int i = 0; i < v_N; i++) {
-		a[i] /= a[3];
-	}
 
 	glUseProgram(Program);
-	glUniformMatrix4fv(u_mat, 1, GL_TRUE, t);
+	glUniformMatrix4fv(u_mat, 1, GL_FALSE, glm::value_ptr(m));
 	glEnableVertexAttribArray(a_vertex);
 	for (int i = 0; i < FA_COUNT; i++) {
 		b[i].draw(u_color, a_vertex);
@@ -135,18 +126,18 @@ void GetBuffer(){
 		1.0f,  1.0f,  15.0f
 	};
 
-	float lines[100][3] = { { 50, 0.5, -50 },{ -50, 0.5, -50 } };
+	float lines[100][3] = { { 25, -4.5, -50 },{ -25, -4.5, -50 } };
 	for (int i = 2; i < 100; i++) {
-		lines[i][0] = ((i % 2) == 0) ? 50 : -50;
+		lines[i][0] = ((i % 2) == 0) ? 25 : -25;
 		lines[i][1] = lines[i - 1][1];
-		lines[i][2] = lines[i - 1][2] + 2 * ((i + 1) % 2);
+		lines[i][2] = lines[i - 1][2] + ((i + 1) % 2);
 	}
 
-	float lines2[100][3] = { { -10, 0.5, 50 },{ -10, 0.5, -50 } };
+	float lines2[100][3] = { { -25, -4.5, -50 },{ -25, -4.5, -5 } };
 	for (int i = 2; i < 100; i++) {
-		lines2[i][0] = lines2[i - 1][0] + 0.4f * ((i + 1) % 2);
+		lines2[i][0] = lines2[i - 1][0] + ((i + 1) % 2);
 		lines2[i][1] = lines2[i - 1][1];
-		lines2[i][2] = ((i % 2) == 0) ? 50 : 0.1;
+		lines2[i][2] = ((i % 2) == 0) ? -25 : 25;
 	}
 
 	b[0] = Buffer(GL_TRIANGLES, triangle, 9, Vec4(0.0f, 0.0f, 0.0f, 1.0f));
