@@ -30,12 +30,14 @@ GLint u_color;
 GLint a_vertex;
 GLint u_frustum;
 GLint u_view;
-camera cam(vec3(0, 5, -20), vec3(0.7, 0, 0.7), vec3(0, 3, 0));
+int width = 800;
+int height = 800;
+camera cam(vec3(0, 0, 0), vec3(0.9, -1.0, 0.0), vec3(0, 1.0, 0));
 
 int OpenGLItit(int argc, char* argv[], char* caption){
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-	glutInitWindowSize(800, 800);
+	glutInitWindowSize(width, height);
 	glutInitContextVersion(4, 2);
 	glutInitContextProfile(GLUT_CORE_PROFILE);
 	glutCreateWindow(caption);
@@ -94,13 +96,7 @@ GLuint LoadShader(char* fileName, GLenum shaderType) {
 void display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glm::mat4 m = glm::perspective(45.0f, 1.0f, 0.1f, 1000.0f);
-	float z[] = {
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, -2,
-		0, 0, -1, 0
-	};
+	mat4 m = glm::perspective(45.0f, (float)width/height, 0.1f, 1000.0f);
 
 	glUseProgram(Program);
 	glUniformMatrix4fv(u_frustum, 1, GL_FALSE, glm::value_ptr(m));
@@ -130,18 +126,18 @@ void GetBuffer(){
 		1.0f,  1.0f,  15.0f
 	};
 
-	float lines[100][3] = { { 25, 0.0f, -25 },{ -25, 0.0f, -25 } };
+	float lines[100][3] = { { 24, 0.0f, -25 },{ -25, 0.0f, -25 } };
 	for (int i = 2; i < 100; i++) {
-		lines[i][0] = ((i % 2) == 0) ? 25 : -25;
+		lines[i][0] = ((i % 2) == 0) ? 24 : -25;
 		lines[i][1] = lines[i - 1][1];
 		lines[i][2] = lines[i - 1][2] + ((i + 1) % 2);
 	}
 
-	float lines2[100][3] = { { -25, 0.0f, -25 },{ -25, 0.0f, 25 } };
+	float lines2[100][3] = { { -25, 0.0f, -25 },{ -25, 0.0f, 24 } };
 	for (int i = 2; i < 100; i++) {
 		lines2[i][0] = lines2[i - 1][0] + ((i + 1) % 2);
 		lines2[i][1] = lines2[i - 1][1];
-		lines2[i][2] = ((i % 2) == 0) ? 25 : -25;
+		lines2[i][2] = ((i % 2) == 0) ? 24 : -25;
 	}
 
 	float lines3[6][3] = {
@@ -158,6 +154,37 @@ void GetBuffer(){
 	b[2] = Buffer(GL_LINES, (float*)lines, 300, Vec4(0.0f, 1.0f, 0.0f, 1.0f));
 	b[3] = Buffer(GL_LINES, (float*)lines2, 300, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
 	b[4] = Buffer(GL_LINES, (float*)lines3, 18, Vec4(1.0f, 0.0f, 1.0f, 1.0f));
+}
+
+int lastx = -1;
+int lasty = -1;
+
+void mouse_move(int x, int y) {
+	int Cx = width / 2;
+	int Cy = height / 2;
+	int offset_x = x - Cx;
+	int offset_y = Cy - y;
+	if (Cx != x && Cy != y) {
+		cam.rotate(offset_x * 0.005, offset_y * 0.005);
+		glutPostRedisplay();
+		glutWarpPointer(Cx, Cy);
+	}
+}
+
+void mouse_click(int button, int state, int x, int y) {
+	//ShowCursor(false);
+}
+
+void key_press_event(unsigned char key, GLint x, GLint y){
+	cam.move((char)key);
+	glutPostRedisplay();
+}
+
+void reshape_event(int a_width, int a_height) {
+	width = a_width;
+	height = a_height;
+	glViewport(0, 0, width, height);
+	glutPostRedisplay();
 }
 
 
@@ -197,8 +224,12 @@ int main(int argc, char* argv[]){
 	Program = LoadShaderProgram();
 	GetBuffer();
 
+	glutPassiveMotionFunc(mouse_move);
+	glutMouseFunc(mouse_click);
+	glutReshapeFunc(reshape_event);
 	glutDisplayFunc(display);
-	glClearColor(256, 256, 256, 256);
+	glutKeyboardFunc(key_press_event);
+	glClearColor(256, 256, 256, 1);
 	glEnable(GL_DEPTH_TEST);
   glutMainLoop();
 

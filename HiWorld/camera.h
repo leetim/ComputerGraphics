@@ -3,16 +3,21 @@
 
 class camera {
 public:
-	void tranclate(Vec4 v);
-	void rotate(Vec4 v, float angle);
+	camera(vec3 position, vec3 front, vec3 up);
+	void tranclate(vec3 v);
+	void rotate(float pitch_angle, float yaw_angle);
 	void zoom(float k);
-	void scale(Vec4 v, float k);
-	Mat4 m();
+	void scale(vec3 v, float k);
+	void move(char dir);
+	mat4 m();	
 private:
-	float near;
-	float far;
-	float fovy;
-	Vec4 target;
-	Vec4 side;
-	Vec4 position;
+	float cnear;
+	float cfar;
+	float cfovy;
+	float speed;
+	float pitch;
+	float yaw;
+	vec3 front;
+	vec3 up;
+	vec3 position;
 };
