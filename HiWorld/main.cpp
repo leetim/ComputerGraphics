@@ -1,4 +1,4 @@
-#define FA_COUNT 4
+#define FA_COUNT 5
 #include <glew.h>
 #include <freeglut.h>
 #include <iostream>
@@ -7,6 +7,7 @@
 #include <fstream>
 #include "Matrix.h"
 #include "buffers.h"
+#include "camera.h"
 
 using namespace std;
 
@@ -27,7 +28,9 @@ Vec4 colors[FA_COUNT] = {
 };
 GLint u_color;
 GLint a_vertex;
-GLint u_mat;
+GLint u_frustum;
+GLint u_view;
+camera cam(vec3(0, 5, -20), vec3(0.7, 0, 0.7), vec3(0, 3, 0));
 
 int OpenGLItit(int argc, char* argv[], char* caption){
 	glutInit(&argc, argv);
@@ -100,7 +103,8 @@ void display() {
 	};
 
 	glUseProgram(Program);
-	glUniformMatrix4fv(u_mat, 1, GL_FALSE, glm::value_ptr(m));
+	glUniformMatrix4fv(u_frustum, 1, GL_FALSE, glm::value_ptr(m));
+	glUniformMatrix4fv(u_view, 1, GL_FALSE, glm::value_ptr(cam.m()));
 	glEnableVertexAttribArray(a_vertex);
 	for (int i = 0; i < FA_COUNT; i++) {
 		b[i].draw(u_color, a_vertex);
@@ -126,25 +130,34 @@ void GetBuffer(){
 		1.0f,  1.0f,  15.0f
 	};
 
-	float lines[100][3] = { { 25, -4.5, -50 },{ -25, -4.5, -50 } };
+	float lines[100][3] = { { 25, 0.0f, -25 },{ -25, 0.0f, -25 } };
 	for (int i = 2; i < 100; i++) {
 		lines[i][0] = ((i % 2) == 0) ? 25 : -25;
 		lines[i][1] = lines[i - 1][1];
 		lines[i][2] = lines[i - 1][2] + ((i + 1) % 2);
 	}
 
-	float lines2[100][3] = { { -25, -4.5, -50 },{ -25, -4.5, -5 } };
+	float lines2[100][3] = { { -25, 0.0f, -25 },{ -25, 0.0f, 25 } };
 	for (int i = 2; i < 100; i++) {
 		lines2[i][0] = lines2[i - 1][0] + ((i + 1) % 2);
 		lines2[i][1] = lines2[i - 1][1];
-		lines2[i][2] = ((i % 2) == 0) ? -25 : 25;
+		lines2[i][2] = ((i % 2) == 0) ? 25 : -25;
 	}
+
+	float lines3[6][3] = {
+		{-50, 0, 0},
+		{50, 0, 0},
+		{0, -50, 0},
+		{0, 50, 0},
+		{0, 0, -50},
+		{0, 0, 50}
+	};
 
 	b[0] = Buffer(GL_TRIANGLES, triangle, 9, Vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	b[1] = Buffer(GL_TRIANGLES, triangle2, 9, Vec4(1.0f, 0.0f, 0.0f, 1.0f));
 	b[2] = Buffer(GL_LINES, (float*)lines, 300, Vec4(0.0f, 1.0f, 0.0f, 1.0f));
 	b[3] = Buffer(GL_LINES, (float*)lines2, 300, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
-
+	b[4] = Buffer(GL_LINES, (float*)lines3, 18, Vec4(1.0f, 0.0f, 1.0f, 1.0f));
 }
 
 
@@ -162,7 +175,8 @@ GLuint LoadShaderProgram(){
 		return GL_UNSIGNED_INT;
 	}
 	u_color = glGetUniformLocation(program, "color");
-	u_mat = glGetUniformLocation(program, "m");
+	u_frustum = glGetUniformLocation(program, "frustum");
+	u_view = glGetUniformLocation(program, "view");
 	a_vertex = glGetAttribLocation(program, "position");
 	return program;
 }
