@@ -1,4 +1,8 @@
-#define FA_COUNT 5
+#define FA_COUNT 6
+#define WHEEL_DOWN 0x0003
+#define WHEEL_UP 0x0004
+#define MIN_FOVY 44.0f
+#define MAX_FOVY 46.0f
 #include <glew.h>
 #include <freeglut.h>
 #include <iostream>
@@ -8,6 +12,8 @@
 #include "Matrix.h"
 #include "buffers.h"
 #include "camera.h"
+#include <windows.h>
+#include <SOIL.h>
 
 using namespace std;
 
@@ -32,7 +38,10 @@ GLint u_frustum;
 GLint u_view;
 int width = 800;
 int height = 800;
-camera cam(vec3(0, 0, 0), vec3(0.9, -1.0, 0.0), vec3(0, 1.0, 0));
+float fovy = 45.0f;
+camera cam(vec3(0.0f, 1.0f, 0.0f), vec3(0.9f, -1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+
+GLuint texture;
 
 int OpenGLItit(int argc, char* argv[], char* caption){
 	glutInit(&argc, argv);
@@ -96,7 +105,8 @@ GLuint LoadShader(char* fileName, GLenum shaderType) {
 void display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	mat4 m = glm::perspective(45.0f, (float)width/height, 0.1f, 1000.0f);
+	mat4 m = glm::perspective(fovy, (float)width/height, 0.1f, 100000.0f);
+	//mat4 m = glm::ortho(-width/20.0f, width/20.0f, height/20.0f, -height/20.0f, 0.1f, 10000.0f);
 
 	glUseProgram(Program);
 	glUniformMatrix4fv(u_frustum, 1, GL_FALSE, glm::value_ptr(m));
@@ -149,34 +159,95 @@ void GetBuffer(){
 		{0, 0, 50}
 	};
 
-	b[0] = Buffer(GL_TRIANGLES, triangle, 9, Vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	float square[4][3] = {
+		-1000.0f, -100.0, -1000.0f,
+		-1000.0f, -100.0, 1000.0f,
+		1000.0f, -100.0, 1000.0f,
+		1000.0f, -100.0, -1000.0f,
+	};
+
+	b[0] = Buffer(GL_TRIANGLES, triangle, 9, Vec4(0.0f, 0.5f, 0.5f, 1.0f));
 	b[1] = Buffer(GL_TRIANGLES, triangle2, 9, Vec4(1.0f, 0.0f, 0.0f, 1.0f));
 	b[2] = Buffer(GL_LINES, (float*)lines, 300, Vec4(0.0f, 1.0f, 0.0f, 1.0f));
 	b[3] = Buffer(GL_LINES, (float*)lines2, 300, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
 	b[4] = Buffer(GL_LINES, (float*)lines3, 18, Vec4(1.0f, 0.0f, 1.0f, 1.0f));
+	b[5] = Buffer(GL_QUADS, (float*)square, 12, Vec4(0.3f, 0.3f, 0.3f, 1.0f));
 }
 
 int lastx = -1;
 int lasty = -1;
+bool to_center_flag = false;
 
-void mouse_move(int x, int y) {
+void to_center() {
 	int Cx = width / 2;
 	int Cy = height / 2;
-	int offset_x = x - Cx;
-	int offset_y = Cy - y;
-	if (Cx != x && Cy != y) {
-		cam.rotate(offset_x * 0.005, offset_y * 0.005);
-		glutPostRedisplay();
-		glutWarpPointer(Cx, Cy);
+	to_center_flag = true;
+	lastx = Cx;
+	lasty = Cy;
+	glutWarpPointer(Cx, Cy);
+}
+/*
+void make_texture() {
+	int image_width;
+	int image_height;
+	glGenTextures(1, &texture);
+	unsigned char* image = SOIL_load_image("textures\grass.jpg", &image_width, &image_height, 0, SOIL_LOAD_RGB);
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	SOIL_free_image_data(image);
+	glBindTexture(GL_TEXTURE_2D);
+}
+*/
+void mouse_move(int x, int y) {
+	if (to_center_flag && x == width / 2 && y == height / 2) {
+		to_center_flag = false;
+		return;
 	}
+	if (lastx == -1 && lasty == -1) {
+		lastx = x;
+		lasty = y;
+	}
+	int offset_x = x - lastx;
+	int offset_y = lasty - y;
+	cam.rotate(offset_y * 0.1, offset_x * 0.1);
+	glutPostRedisplay();
+	to_center();
 }
 
+
+
 void mouse_click(int button, int state, int x, int y) {
-	//ShowCursor(false);
+	switch (button){
+	case WHEEL_UP:
+		fovy += 0.1f;
+		break;
+	case WHEEL_DOWN:
+		fovy -= 0.1f;
+		break;
+	}
+	if (fovy < MIN_FOVY) {
+		fovy = MIN_FOVY;
+	}
+	if (fovy > MAX_FOVY) {
+		fovy = MAX_FOVY;
+	}
+	glutPostRedisplay();
+	cout << button << " " << fovy << endl;
+	ShowCursor(false);
 }
 
 void key_press_event(unsigned char key, GLint x, GLint y){
 	cam.move((char)key);
+	switch (key) {
+	case 'q':
+		cam.rotate(0, -1.0);
+		break;
+	case 'e':
+		cam.rotate(0, 1.0);
+		break;
+	}
 	glutPostRedisplay();
 }
 
@@ -223,13 +294,14 @@ int main(int argc, char* argv[]){
 	}
 	Program = LoadShaderProgram();
 	GetBuffer();
-
+	glutWarpPointer(width / 2, height / 2);
+	
 	glutPassiveMotionFunc(mouse_move);
 	glutMouseFunc(mouse_click);
 	glutReshapeFunc(reshape_event);
 	glutDisplayFunc(display);
 	glutKeyboardFunc(key_press_event);
-	glClearColor(256, 256, 256, 1);
+	glClearColor(0, 0, 0, 1);
 	glEnable(GL_DEPTH_TEST);
   glutMainLoop();
 
